@@ -130,3 +130,73 @@ export async function getProgress() {
         weakestTopics: weakTopics.slice(0, 5)
     }
 }
+
+export async function getProblemHistory(query: string) {
+    // Try exact slug/title first
+    let problemResult = await pool.query(
+        `
+        SELECT *
+        FROM problems
+        WHERE slug = $1
+           OR LOWER(title) = LOWER($1)
+        LIMIT 1
+        `,
+        [query]
+    )
+
+    // If no exact match, try partial title
+    if (problemResult.rows.length === 0) {
+        problemResult = await pool.query(
+            `
+            SELECT *
+            FROM problems
+            WHERE title ILIKE $1
+            LIMIT 1
+            `,
+            [`%${query}%`]
+        )
+    }
+
+    if (problemResult.rows.length === 0) {
+        return null
+    }
+
+    const problem = problemResult.rows[0]
+
+    const submissionsResult = await pool.query(
+        `
+        SELECT
+            submission_name,
+            language,
+            github_url,
+            solved_at
+        FROM submissions
+        WHERE problem_id = $1
+        ORDER BY solved_at ASC
+        `,
+        [problem.id]
+    )
+
+    const submissions = submissionsResult.rows
+
+    return {
+        title: problem.title,
+        slug: problem.slug,
+        difficulty: problem.difficulty,
+        topics: problem.topics,
+
+        totalAttempts: submissions.length,
+
+        firstAttempt:
+            submissions.length > 0
+                ? submissions[0].solved_at
+                : null,
+
+        lastAttempt:
+            submissions.length > 0
+                ? submissions[submissions.length - 1].solved_at
+                : null,
+
+        submissions
+    }
+}

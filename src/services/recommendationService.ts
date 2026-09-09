@@ -100,3 +100,71 @@ export async function recommendProblems(limit = 5) {
             leetcodeUrl: problem.leetcode_url
         }))
 }
+
+export async function getReviewProblems(limit = 5) {
+    const weakTopics = await getWeakTopics()
+
+    const topicScores = new Map(
+        weakTopics.map(topic => [
+            topic.topic,
+            {
+                weaknessScore: topic.weaknessScore,
+                reviewScore: topic.reviewScore
+            }
+        ])
+    )
+
+    const result = await pool.query(`
+        SELECT
+            p.id,
+            p.slug,
+            p.title,
+            p.difficulty,
+            p.topics,
+            COUNT(s.id)::int AS attempts,
+            MAX(s.solved_at) AS last_solved
+        FROM problems p
+        JOIN submissions s
+            ON s.problem_id = p.id
+        GROUP BY p.id
+    `)
+
+    const candidates = result.rows.map(problem => {
+        const topic = problem.topics?.[0]
+
+        const topicData = topicScores.get(topic)
+
+        const daysSinceSolved =
+            (
+                Date.now() -
+                new Date(problem.last_solved).getTime()
+            ) /
+            (1000 * 60 * 60 * 24)
+
+        const weaknessScore =
+            topicData?.weaknessScore ?? 0
+
+        const reviewScore =
+            topicData?.reviewScore ?? 0
+
+        const score =
+            daysSinceSolved +
+            weaknessScore * 0.5 +
+            reviewScore * 0.5
+
+        return {
+            title: problem.title,
+            slug: problem.slug,
+            difficulty: problem.difficulty,
+            topic,
+            attempts: problem.attempts,
+            lastSolved: problem.last_solved,
+            daysSinceSolved: Math.round(daysSinceSolved),
+            score: Math.round(score)
+        }
+    })
+
+    return candidates
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+}

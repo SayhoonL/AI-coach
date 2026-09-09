@@ -1,11 +1,19 @@
 import { McpServer } from "@modelcontextprotocol/server"
 import { serveStdio } from "@modelcontextprotocol/server/stdio"
+import * as z from "zod/v4"
+
 import {
     getWeakTopics,
     getRecentActivity,
-    getProgress
+    getProgress,
+    getProblemHistory
 } from "../services/analyticsService.js"
-import { recommendProblems } from "../services/recommendationService.js"
+
+import {
+    recommendProblems,
+    getReviewProblems
+} from "../services/recommendationService.js"
+
 function createServer() {
     const server = new McpServer({
         name: "dsa-coach",
@@ -31,6 +39,7 @@ function createServer() {
             }
         }
     )
+
     server.registerTool(
         "get_recent_activity",
         {
@@ -50,6 +59,7 @@ function createServer() {
             }
         }
     )
+
     server.registerTool(
         "get_progress",
         {
@@ -69,6 +79,7 @@ function createServer() {
             }
         }
     )
+
     server.registerTool(
         "recommend_problems",
         {
@@ -82,11 +93,67 @@ function createServer() {
                 content: [
                     {
                         type: "text",
-                        text: JSON.stringify(
-                            recommendations,
-                            null,
-                            2
-                        )
+                        text: JSON.stringify(recommendations, null, 2)
+                    }
+                ]
+            }
+        }
+    )
+
+    server.registerTool(
+        "get_problem_history",
+        {
+            description:
+                "Get the user's complete practice history for a specific DSA problem.",
+
+            inputSchema: z.object({
+                problem: z
+                    .string()
+                    .min(1)
+                    .describe(
+                        "Problem title or slug, for example LRU Cache or lru-cache"
+                    )
+            })
+        },
+        async ({ problem }) => {
+            const history = await getProblemHistory(problem)
+
+            if (!history) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `No history found for "${problem}".`
+                        }
+                    ]
+                }
+            }
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(history, null, 2)
+                    }
+                ]
+            }
+        }
+    )
+
+    server.registerTool(
+        "get_review_problems",
+        {
+            description:
+                "Recommend previously solved DSA problems that the user should revisit based on topic weakness and time since last practice."
+        },
+        async () => {
+            const reviews = await getReviewProblems(5)
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(reviews, null, 2)
                     }
                 ]
             }
@@ -99,4 +166,3 @@ function createServer() {
 void serveStdio(createServer)
 
 console.error("DSA Coach MCP server running")
-
