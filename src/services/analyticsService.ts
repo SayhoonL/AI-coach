@@ -107,3 +107,26 @@ export async function getWeakTopics() {
     })
     .sort((a, b) => b.weaknessScore - a.weaknessScore)
 }
+
+export async function getProgress() {
+    const totals = await pool.query(`
+        SELECT
+            COUNT(DISTINCT p.id)::int AS total_problems,
+            COUNT(s.id)::int AS total_submissions
+        FROM problems p
+        LEFT JOIN submissions s
+            ON s.problem_id = p.id
+    `)
+
+    const difficulty = await getDifficultyStats()
+    const topics = await getTopicStats()
+    const weakTopics = await getWeakTopics()
+
+    return {
+        totalProblems: totals.rows[0].total_problems,
+        totalSubmissions: totals.rows[0].total_submissions,
+        difficulty,
+        topPracticedTopics: topics.slice(0, 5),
+        weakestTopics: weakTopics.slice(0, 5)
+    }
+}
