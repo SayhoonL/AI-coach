@@ -7,6 +7,9 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "db:init": "tsx src/db/init.ts",
+    "sync": "tsx src/scripts/sync.ts",
+    "metadata": "tsx src/scripts/metadata.ts",
+    "analytics": "tsx src/scripts/analytics.ts",
     "mcp": "tsx src/mcp/server.ts"
   },
   "keywords": [],
