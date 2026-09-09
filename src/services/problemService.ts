@@ -1,31 +1,25 @@
 import { pool } from "../db"
 
 export async function addProblem(
-    leetcodeId: number,
-    title: string,
-    difficulty: string,
-    topics: string[]
+    slug: string,
+    title: string
 ) {
     const result = await pool.query(
         `
         INSERT INTO problems (
-            leetcode_id,
-            title,
-            difficulty,
-            topics
+            slug,
+            title
         )
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (leetcode_id)
+        VALUES ($1, $2)
+
+        ON CONFLICT (slug)
         DO UPDATE SET
-            title = EXCLUDED.title,
-            difficulty = EXCLUDED.difficulty,
-            topics = EXCLUDED.topics
+            title = EXCLUDED.title
+
         RETURNING *
         `,
-        [leetcodeId, title, difficulty, topics]
+        [slug, title]
     )
-
-    console.log("DB rows:", result.rows)
 
     return result.rows[0]
 }

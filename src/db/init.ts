@@ -5,8 +5,9 @@ async function initDatabase() {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS problems (
                 id SERIAL PRIMARY KEY,
-                leetcode_id INTEGER UNIQUE NOT NULL,
+                slug VARCHAR(255) UNIQUE NOT NULL,
                 title VARCHAR(255) NOT NULL,
+                leetcode_id INTEGER,
                 difficulty VARCHAR(20),
                 topics TEXT[],
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -17,9 +18,12 @@ async function initDatabase() {
             CREATE TABLE IF NOT EXISTS submissions (
                 id SERIAL PRIMARY KEY,
                 problem_id INTEGER NOT NULL REFERENCES problems(id),
+                submission_name VARCHAR(255) NOT NULL,
                 language VARCHAR(50),
-                github_url TEXT,
-                solved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                github_url TEXT NOT NULL,
+                github_path TEXT UNIQUE NOT NULL,
+                solved_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `)
 
