@@ -1,14 +1,16 @@
 import dotenv from "dotenv"
-import { backfillSubmissionDates } from "./services/dateService"
+import { getWeakTopics } from "./services/analyticsService"
 import { pool } from "./db"
 
 dotenv.config()
 
 async function main() {
     try {
-        await backfillSubmissionDates()
+        const weakTopics = await getWeakTopics()
+
+        console.table(weakTopics)
     } catch (error) {
-        console.error("Date backfill failed:", error)
+        console.error("Weak topic analysis failed:", error)
     } finally {
         await pool.end()
     }
